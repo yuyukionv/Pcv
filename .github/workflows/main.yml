@@ -1,64 +1,43 @@
-name: "CharmWave Instance Deployment"
+name: CharmWave Deployment
 
 on:
   workflow_dispatch:
     inputs:
       INSTANCE:
-        description: "Instance number to deploy (e.g., 1, 2, 3...)"
+        description: "Instance number"
         required: true
         default: "1"
 
 jobs:
-  deploy-charmwave:
-    name: "Deploy Instance"
+  deploy:
     runs-on: windows-2022
 
-    env:
-      INSTANCE_ID: ${{ github.event.inputs.INSTANCE }}
-      REPO: ${{ github.repository }}
-      WORKFLOW_FILE: "main.yml"
-      DEPLOYMENT_ID: ${{ github.run_id }}
-
     steps:
-      - name: Deployment Parameters
+      - name: Show Deployment Info
         shell: pwsh
         run: |
-          $prevInstance = [int]$env:INSTANCE_ID - 1
-          Write-Host "==============================================="
-          Write-Host "CharmWave Instance    : $env:INSTANCE_ID"
-          Write-Host "Previous Instance     : $prevInstance"
-          Write-Host "GitHub Repository     : $env:REPO"
-          Write-Host "Deployment Workflow   : $env:WORKFLOW_FILE"
-          Write-Host "Deployment ID         : $env:DEPLOYMENT_ID"
-          Write-Host "==============================================="
+          Write-Host "=============================="
+          Write-Host "Instance : ${{ github.event.inputs.INSTANCE }}"
+          Write-Host "Repo     : ${{ github.repository }}"
+          Write-Host "Run ID   : ${{ github.run_id }}"
+          Write-Host "=============================="
 
-      - name: Validate Secrets
+      - name: Download Script
         shell: pwsh
         run: |
-          Write-Host "All required secrets validated successfully"
-
-      - name: Download Instance Script
-        shell: pwsh
-        run: |
-          $key = "${{ secrets.CHARMWAVE_KEY }}"
-          Write-Host "Downloading CharmWave.ps1 from: $key"
-          Invoke-WebRequest -Uri $key -OutFile "CharmWave.ps1" -UseBasicParsing
-          if (!(Test-Path "./CharmWave.ps1")) {
-            Write-Error "Failed to download CharmWave.ps1"
+          $url = "${{ secrets.CHARMWAVE_KEY }}"
+          Invoke-WebRequest -Uri $url -OutFile "CharmWave.ps1" -UseBasicParsing
+          if (!(Test-Path "CharmWave.ps1")) {
+            Write-Error "Download failed"
             exit 1
           }
-          Write-Host "CharmWave.ps1 downloaded successfully"
 
-      - name: Execute Instance Script
+      - name: Execute Script
         shell: pwsh
-        run: |
-          Write-Host "Initiating CharmWave.ps1"
-          powershell.exe -ExecutionPolicy Bypass -File ".\CharmWave.ps1"
-      
-      - name: Final Status
+        run: powershell.exe -ExecutionPolicy Bypass -File CharmWave.ps1
+
+      - name: Done
         if: always()
         shell: pwsh
         run: |
-          Write-Host "CharmWave Instance completed execution."
-          Write-Host "Powered by: EVKILE"
-          Write-Host "CharmWave deployment executed with tactical precision."
+          Write-Host "CharmWave Deployment Completed."
